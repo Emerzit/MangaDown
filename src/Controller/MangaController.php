@@ -71,7 +71,7 @@ class MangaController extends Controller {
         }
       }
       else {
-        return new Response($pdfs[$i - 1]->Output('D', $manga->getName() . "_ch" . sprintf("%03d", $i - 1) . "pdf"), 200, [
+        return new Response($pdfs[$i]->Output('D', $manga->getName() . "_ch" . sprintf("%03d", $i) . "pdf"), 200, [
           'Content-Type' => 'application/pdf',
         ]);
       }
