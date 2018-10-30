@@ -1,0 +1,5 @@
+index:
+    path: /{_locale}
+    controller: App\Controller\MangaController::index
+    requirements:
+      _locale: en|fr|de|it|rm

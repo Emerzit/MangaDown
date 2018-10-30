@@ -1,0 +1,35 @@
+parameters:
+  websites:
+    FanFox:
+      home_url: https://fanfox.net
+      base_url: https://fanfox.net/manga/
+      configs:
+        chapter:
+          prepend: /c
+          format: '%03d'
+        volume:
+        page: /
+        img_tag: image
+        extension: .html
+    mangaReader:
+      home_url: https://www.mangareader.net
+      base_url: https://www.mangareader.net/
+      configs:
+        chapter:
+          prepend: /
+          format: '%d'
+        volume:
+        page: /
+        img_tag: img
+        extension:
+    Mangas-Lel:
+      home_url: https://www.manga-lel.com
+      base_url: https://www.manga-lel.com/manga/
+      configs:
+        chapter:
+          prepend: /
+          format: '%03d'
+        volume:
+        page: /
+        img_tag:
+        extension:
