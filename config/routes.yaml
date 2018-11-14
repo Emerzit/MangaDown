@@ -3,3 +3,6 @@ index:
     controller: App\Controller\MangaController::index
     requirements:
       _locale: en|fr|de|it|rm
+thank_you:
+  path: /download
+  controller: App\Controller\MangaController::download

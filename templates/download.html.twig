@@ -1,0 +1,11 @@
+{% extends 'base.html.twig' %}
+{% block body %}
+    header('Content-type: application/zip');
+    header('Content-Disposition: attachment; filename="' . basename($zip_file) . '"');
+    header("Content-length: " . filesize($zip_file));
+    header("Pragma: no-cache");
+    header("Expires: 0");
+    <body>
+    <a id="down" href="{{ filename }}">Super Lien !</a>
+    </body>
+{% endblock %}
