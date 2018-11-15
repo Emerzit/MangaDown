@@ -1,8 +1,8 @@
 index:
-    path: /{_locale}
-    controller: App\Controller\MangaController::index
-    requirements:
-      _locale: en|fr|de|it|rm
-thank_you:
-  path: /download
+  path: /{_locale}
+  controller: App\Controller\MangaController::index
+  requirements:
+    _locale: en|fr|de|it|rm
+download:
+  path: /download/{type}/{filename}
   controller: App\Controller\MangaController::download

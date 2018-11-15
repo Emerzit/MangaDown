@@ -94,13 +94,41 @@ class MangaController extends Controller {
         $pdfs[$i]->Output('F', $filename);
 
       }
-      return $this->render('download.html.twig', [
+      return $this->redirectToRoute('download', [
+        'filename' => $filename,
+        'type' => "PDF",
+      ]);
+      /*return $this->render('download.html.twig', [
         'filename' => $filename,
         'path' => $path,
-      ]);
+      ]);*/
     }
     return $this->render("index.html.twig", ['form' => $form->createView(),]);
   }
 
+  public function download($type, $filename) {
+    switch ($type) {
+      case "ZIP":
+        header('Content-type: application/zip');
+        header('Content-Disposition: attachment; filename="' . basename($filename) . '"');
+        header("Content-length: " . filesize($filename));
+        header("Pragma: no-cache");
+        header("Expires: 0");
+        break;
+      case "PDF":
+        header('Content-type: application/pdf');
+        header('Content-Disposition: attachment; filename="' . basename($filename) . '"');
+        header("Content-length: " . filesize($filename));
+        header("Pragma: no-cache");
+        header("Expires: 0");
+        dump("salut");
+        break;
+    }
+    dump("salut");
+    return $this->render('download.html.twig', [
+      'filename' => $filename,
+      'type' => $type,
+    ]);
+  }
 
 }
