@@ -11,13 +11,12 @@ namespace App\Controller;
 use App\Entity\Manga;
 use App\Form\MangaType;
 use App\Repository\MangaRepository;
-use Symfony\Bundle\FrameworkBundle\Controller\Controller;
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\Session\Session;
 use ZipArchive;
 
-class MangaController extends Controller {
+class MangaController extends AbstractController {
 
   private $mangaRepository;
 
@@ -29,32 +28,28 @@ class MangaController extends Controller {
     $session = new Session();
     $manga = new Manga();
     $form = $this->createForm(MangaType::class, $manga, ['listWebsites' => $this->mangaRepository->getStrWebsites()]);
+
     //processing Form
     if ($request->isMethod('POST') && $form->handleRequest($request)
         ->isValid()) {
-      $config = $this->mangaRepository->getConfigByWebsite($manga->getWebsite());
       $i = $manga->getNumStartChapter();
       //get data not mapped
       $multiple = $form->get("multiple")->getData();
       $pdfs = NULL;
-      //we get the generic url for the specified website
-      $downUrl = $this->mangaRepository->getConfigUrl($config);
-      //specify the manga's name in th generic URL
-      $downUrl = str_replace('%name%', $manga->getName(), $downUrl);
+
       do {
         $chapterImgs = $this->mangaRepository->getChapterImg(
-          $downUrl,
-          //format the chapter number in format for the specified website
-          sprintf($config['configs']['chapter']['format'], $i),
-          $config['configs']['img_tag']
+          $manga->getWebsite(),
+          $manga->getName(),
+          $i
         );
         $pdfs[$i] = $this->mangaRepository->getPdf($chapterImgs);
       } while ($multiple && $i++ < $manga->getNumEndChapter());
-      //return;
+
       if (count($pdfs) > 1) {
         $zip = new ZipArchive;
-        dump($session->getId());
 
+        //creation of directories
         $path = 'tmp/' . $session->getId();
         if (!file_exists($path)) {
           mkdir($path, 0777, TRUE);
@@ -65,20 +60,10 @@ class MangaController extends Controller {
           foreach ($pdfs as $key => $pdf) {
             $zip->addFromString($manga->getName() . "_ch" . sprintf("%03d", $key) . ".pdf", $pdf->Output('S'));
           }
-          dump($zip_file);
           $zip->close();
           $filename = $zip_file;
-          /*header('Content-type: application/zip');
-          header('Content-Disposition: attachment; filename="' . basename($zip_file) . '"');
-          header("Content-length: " . filesize($zip_file));
-          header("Pragma: no-cache");
-          header("Expires: 0");
-          *///clean output buffer
           ob_clean();
           flush();
-          //download
-          // readfile($zip_file);
-          // unlink($zip_file);
 
         }
         else {
@@ -106,29 +91,32 @@ class MangaController extends Controller {
     return $this->render("index.html.twig", ['form' => $form->createView(),]);
   }
 
-  public function download($type, $filename) {
+  public function download(Request $request) {
+    dump($request);
+    $type = $request->query->get('type');
+    $filename = $request->query->get('filename');
     switch ($type) {
       case "ZIP":
-        header('Content-type: application/zip');
+        /*header('Content-type: application/zip');
         header('Content-Disposition: attachment; filename="' . basename($filename) . '"');
         header("Content-length: " . filesize($filename));
         header("Pragma: no-cache");
-        header("Expires: 0");
+        header("Expires: 0");*/
         break;
       case "PDF":
-        header('Content-type: application/pdf');
+
+        /*header('Content-type: application/pdf');
         header('Content-Disposition: attachment; filename="' . basename($filename) . '"');
         header("Content-length: " . filesize($filename));
         header("Pragma: no-cache");
-        header("Expires: 0");
-        dump("salut");
+        header("Expires: 0");*/
         break;
     }
-    dump("salut");
-    return $this->render('download.html.twig', [
+    return $this->file($filename);
+    /*return $this->render('download.html.twig', [
       'filename' => $filename,
       'type' => $type,
-    ]);
+    ]);*/
   }
 
 }

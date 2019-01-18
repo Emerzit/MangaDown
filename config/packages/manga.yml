@@ -9,7 +9,7 @@ parameters:
           format: '%03d'
         volume:
         page: /
-        img_tag: image
+        img_tag: .reader-main-img
         extension: .html
     mangaReader:
       home_url: https://www.mangareader.net
@@ -20,7 +20,7 @@ parameters:
           format: '%d'
         volume:
         page: /
-        img_tag: img
+        img_tag: '#img'
         extension:
     Mangas-Lel:
       home_url: https://www.manga-lel.com

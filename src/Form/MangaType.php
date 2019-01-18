@@ -27,12 +27,6 @@ class MangaType extends AbstractType {
         'choices' => $options['listWebsites'],
       ])
       ->add('name', TextType::class, ['help' => 'mangadown.form.help.name'])
-      ->add('size', ChoiceType::class, [
-        'choices' => [
-          'mangadown.form.choices.chapter' => 'ch',
-          'mangadown.form.choices.volume' => 'vol',
-        ],
-      ])
       ->add('multiple', CheckboxType::class, [
         'mapped' => FALSE,
         'required' => FALSE,

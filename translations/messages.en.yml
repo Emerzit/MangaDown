@@ -4,7 +4,6 @@ mangadown:
     url: name
     choices:
       chapter: chapter
-      volume: volume
     submit: download
     help:
       name: Machine name of manga that appear in URL bar.

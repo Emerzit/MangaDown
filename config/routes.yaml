@@ -4,5 +4,5 @@ index:
   requirements:
     _locale: en|fr|de|it|rm
 download:
-  path: /download/{type}/{filename}
+  path: /download
   controller: App\Controller\MangaController::download

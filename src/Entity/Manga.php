@@ -34,11 +34,6 @@ class Manga {
   private $name;
 
   /**
-   * @var string
-   */
-  private $size;
-
-  /**
    * @var int
    *
    * @Assert\GreaterThan(value="0",message="have to be more than zero")
@@ -84,20 +79,6 @@ class Manga {
    */
   public function setName(string $name) {
     $this->name = $name;
-  }
-
-  /**
-   * @return string
-   */
-  public function getSize() {
-    return $this->size;
-  }
-
-  /**
-   * @param string $size
-   */
-  public function setSize(string $size) {
-    $this->size = $size;
   }
 
   /**

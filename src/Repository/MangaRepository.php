@@ -10,6 +10,7 @@ namespace App\Repository;
 
 
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
+use Symfony\Component\Panther\Client;
 use Symfony\Component\Translation\TranslatorInterface;
 
 
@@ -22,12 +23,9 @@ class MangaRepository {
 
   private $translator;
 
-  private $parser;
-
   private $params;
 
-  public function __construct(TranslatorInterface $translator, ParameterBagInterface $params, \simple_html_dom $parser) {
-    $this->parser = $parser;
+  public function __construct(TranslatorInterface $translator, ParameterBagInterface $params) {
     $this->translator = $translator;
     $this->params = $params;
   }
@@ -37,20 +35,19 @@ class MangaRepository {
     return $config;
   }
 
-  public function getConfigUrl($config) {
-    return $config['base_url'] . '%name%' . $config['configs']['chapter']['prepend'] . '%nbChapter%' . $config['configs']['page'] . '%nbPage%' . $config['configs']['extension'];
-    /*switch ($website) {
-      case 'FanFox':
+  public function formatChapter($config, int $nb) {
+    return sprintf($config['configs']['chapter']['format'], $nb);
+  }
+
+  private function getConfigUrl($config, string $pageType) {
+    switch ($pageType) {
+      case "multi":
         return $config['base_url'] . '%name%' . $config['configs']['chapter']['prepend'] . '%nbChapter%' . $config['configs']['page'] . '%nbPage%' . $config['configs']['extension'];
-        break;
-      case 'mangaReader':
-        return $config['base_url'] . '%name%' . $config['configs']['chapter']['prepend'] . '%nbChapter%' . $config['configs']['page'] . '%nbPage%' . $config['configs']['extension'];
-        break;
-      case 'Mangas-Lel':
-        return $config['base_url'] . '%name%' . $config['configs']['chapter']['prepend'] . '%nbChapter%' . $config['configs']['page'] . '%nbPage%' . $config['configs']['extension'];
+      case "one":
+        return $config['base_url'] . '%name%' . $config['configs']['chapter']['prepend'] . '%nbChapter%';
       default:
-        echo 'default case';
-    }*/
+        throw new \Exception("unhandled type of page.");
+    }
   }
 
   public function getStrWebsites() {
@@ -62,72 +59,136 @@ class MangaRepository {
     return $result;
   }
 
+  public function getChapterImg($website, $name, $numeroChapter) {
+    $config = $this->getConfigByWebsite($website);
+    //format the chapter number in format for the specified website
+    $chap = $this->formatChapter($config, $numeroChapter);
+
+    //we get the generic url for the specified website
+    $downUrl = $this->getConfigUrl($config, "one");
+    //specify the manga's name in th generic URL
+    $downUrl = str_replace('%name%', $name, $downUrl);
+    $downUrl = str_replace('%nbChapter%', $chap, $downUrl);
+
+    //client to crawl html
+    $client = Client::createChromeClient();
+    try {
+      $crawler = $client->request('GET', $downUrl);
+    } catch (\Exception $exception) {
+      echo 'incapacité à accéder au site ' . $exception->getMessage();
+      $client->quit();
+      throw $exception;
+    }
+
+    $images = $crawler->filter($config['configs']['img_tag'])
+      ->extract(["data-src"]);
+
+    //without JS
+    if ($images[0] == NULL) {
+      $images[] = $crawler->filter($config['configs']['img_tag'])
+        ->extract(["src"]);
+    }
+
+    //test if on or multipage
+    if (!(count($images) > 1)) {
+      //multi Pages
+      $downUrl = $this->getConfigUrl($config, "multi");
+      $downUrl = str_replace('%name%', $name, $downUrl);
+      $downUrl = str_replace('%nbChapter%', $chap, $downUrl);
+      $images = array_merge($images, $this->getChapterImgMultiPages($downUrl, $config['configs']['img_tag'], $client));
+    }
+    $client->quit();
+    return $images;
+  }
+
+  // TO DELETE //recursive function to get all last nodes of HTMLDOM
+  private function getAllLastNodes(\simple_html_dom_node $root) {
+    $array = [];
+    if ($root->hasChildNodes()) {
+      foreach ($root->children as $node) {
+        $array = array_merge($array, $this->getAllLastNodes($node));
+      }
+    }
+    else {
+      return [$root];
+    }
+    return $array;
+
+  }
+
   /**
    * @param string $downUrl
-   * @param string $numeroChapter
    * @param string $imgTag use for search the img in the html
    *
    */
-  public function getChapterImg($downUrl, $numeroChapter, $imgTag) {
-    $downUrl = str_replace('%nbChapter%', $numeroChapter, $downUrl);
-    $imagesCollection = [];
-    $i = 1;
+  private function getChapterImgMultiPages($downUrl, $imgTag, $client) {
+    $images = [];
+
+    //we already have the first image
+    $i = 2;
+
+
     while (TRUE) {
+
+      $fullUrl = str_replace('%nbPage%', $i, $downUrl);
+
       try {
-        $fullUrl = str_replace('%nbPage%', $i, $downUrl);
-        $html = file_get_contents($fullUrl);
-        $html = str_get_html($html);
-
-        //get image
-        $image = $html->find('[id=' . $imgTag . ']')[0];
-
-        $imagesCollection[] = getimagesize($image->attr['src']);
-        $imagesCollection[$i - 1]['src'] = $image->attr['src'];
-        $i++;
+        $crawler = $client->request('GET', $fullUrl);
       } catch
       (\Exception $exception) {
-        //If error 404 then the we are at the end of the chapter and we return the images
-        if ((strpos($exception->getMessage(), '404') !== FALSE)) {
-          return $imagesCollection;
-        }
         //other an error occured
         echo 'incapacité à accéder au site ' . $exception->getMessage();
+        $client->quit();
         throw $exception;
       }
+
+      //with js
+      $images[] = $crawler->filter($imgTag)->extract(["data-src"]);
+
+      //without js
+      if ($images[$i - 2] == NULL) {
+        $images[] = $crawler->filter($imgTag)->extract(["src"]);
+      }
+
+      //If error 404 then the we are at the end of the chapter and we return the images
+      if ($images[$i - 2] == NULL/*(strpos($exception->getMessage(), '404') !== FALSE)*/) {
+        return $images;
+      }
+
+      $i++;
     }
   }
 
   public function getPdf($images) {
     // create new PDF document from images
     $pdf = new \FPDF();
-    foreach ($images as $image) {
+    $dpi = 300;
+    foreach ($images as $i => $image) {
+      $src = $image;
+      //take away whatever is after the .png, .jpeg
+      if (($pos = strpos($src, '?')) !== FALSE) {
+        $src = substr($src, 0, $pos);
+      }
+      //src doesn't have http:
+      if (!isset(parse_url($src)["scheme"])) {
+        $src = "http:" . $src;
+      }
       //mm=(pixel*1inch)/DPI
-      $width = ($image[0] * 25.4) / 96;
-      $height = ($image[1] * 25.4) / 96;
+      $dimension = getimagesize($src);
+
+      dump($dimension);
+      $width = ($dimension[0] * 25.4) / $dpi;
+      $height = ($dimension[1] * 25.4) / $dpi;
       if ($width > $height) {
         $pdf->AddPage('L', [$width, $height]);
       }
       else {
         $pdf->AddPage('P', [$width, $height]);
       }
-      $src = $image['src'];
-      //take away whatever is after the .png, .jpeg
-      if (($pos = strpos($src, '?')) !== FALSE) {
-        $src = substr($src, 0, $pos);
-      }
-      $pdf->Image($src, 0, 0, $width, $height);
+
+
+      $pdf->Image($src, 0, 0, -$dpi);
     }
     return $pdf;
-  }
-
-  /**
-   * Function to convert a volume in Number of chapter;
-   */
-  public function getVolume() {
-
-  }
-
-  public function getVolumes() {
-
   }
 }
