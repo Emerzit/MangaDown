@@ -74,7 +74,8 @@ class MangaRepository {
     $client = Client::createChromeClient();
     try {
       $crawler = $client->request('GET', $downUrl);
-    } catch (\Exception $exception) {
+    }
+    catch (\Exception $exception) {
       echo 'incapacité à accéder au site ' . $exception->getMessage();
       $client->quit();
       throw $exception;
@@ -84,7 +85,7 @@ class MangaRepository {
       ->extract(["data-src"]);
 
     //without JS
-    if ($images[0] == NULL) {
+    if ($images == NULL) {
       $images[] = $crawler->filter($config['configs']['img_tag'])
         ->extract(["src"]);
     }
@@ -96,6 +97,7 @@ class MangaRepository {
       $downUrl = str_replace('%name%', $name, $downUrl);
       $downUrl = str_replace('%nbChapter%', $chap, $downUrl);
       $images = array_merge($images, $this->getChapterImgMultiPages($downUrl, $config['configs']['img_tag'], $client));
+
     }
     $client->quit();
     return $images;
@@ -134,7 +136,8 @@ class MangaRepository {
 
       try {
         $crawler = $client->request('GET', $fullUrl);
-      } catch
+      }
+      catch
       (\Exception $exception) {
         //other an error occured
         echo 'incapacité à accéder au site ' . $exception->getMessage();
@@ -165,6 +168,7 @@ class MangaRepository {
     $dpi = 300;
     foreach ($images as $i => $image) {
       $src = $image;
+      dump($image);
       //take away whatever is after the .png, .jpeg
       if (($pos = strpos($src, '?')) !== FALSE) {
         $src = substr($src, 0, $pos);
