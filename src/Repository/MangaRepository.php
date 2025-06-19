@@ -80,13 +80,14 @@ class MangaRepository {
       throw $exception;
     }
 
-    $images = $crawler->filter($config['configs']['img_tag'])
-      ->extract(["data-src"]);
+    $images = [];
 
-    //without JS
-    if ($images[0] == NULL) {
-      $images[] = $crawler->filter($config['configs']['img_tag'])
-        ->extract(["src"]);
+    $firstImg = $crawler->filter($config['configs']['img_tag'])->attr('data-src');
+    if (!$firstImg) {
+      $firstImg = $crawler->filter($config['configs']['img_tag'])->attr('src');
+    }
+    if ($firstImg) {
+      $images[] = $firstImg;
     }
 
     //test if on or multipage
@@ -127,34 +128,30 @@ class MangaRepository {
     //we already have the first image
     $i = 2;
 
-
     while (TRUE) {
 
       $fullUrl = str_replace('%nbPage%', $i, $downUrl);
 
       try {
         $crawler = $client->request('GET', $fullUrl);
-      } catch
-      (\Exception $exception) {
+      } catch (\Exception $exception) {
         //other an error occured
         echo 'incapacité à accéder au site ' . $exception->getMessage();
         $client->quit();
         throw $exception;
       }
 
-      //with js
-      $images[] = $crawler->filter($imgTag)->extract(["data-src"]);
-
-      //without js
-      if ($images[$i - 2] == NULL) {
-        $images[] = $crawler->filter($imgTag)->extract(["src"]);
+      $img = $crawler->filter($imgTag)->attr('data-src');
+      if (!$img) {
+        $img = $crawler->filter($imgTag)->attr('src');
       }
 
-      //If error 404 then the we are at the end of the chapter and we return the images
-      if ($images[$i - 2] == NULL/*(strpos($exception->getMessage(), '404') !== FALSE)*/) {
+      if (!$img) {
+        //If no image is found (404 or end of chapter) we return the images
         return $images;
       }
 
+      $images[] = $img;
       $i++;
     }
   }
